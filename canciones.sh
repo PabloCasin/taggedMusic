@@ -1,16 +1,29 @@
 #!/bin/bash
 
 # Usar el directorio actual como DIRECTORIO
-DIRECTORIO="$(pwd)"
+
 KO_FOLDER="ko_songs"
 URL="https://api.discogs.com/database/search?key=dxtCgfEqswNhHHOaQzxR&secret=ACMIcQrllDbOVpuRmbVHrZCEzNGINTsm"
-MUSIC_ALBUM="Revival Dance Hits - Progressive"
+
+if [$1 == ""]; then
+    DIRECTORIO="$(pwd)"
+else
+    DIRECTORIO=$1
+fi
+
+if [$2 == ""]; then
+    MUSIC_ALBUM=""
+else
+    MUSIC_ALBUM=$2
+fi
+
+echo "${DIRECTORIO} \n ${MUSIC_ALBUM}" 
 
 # Limpiar los nombres de los archivos MP3 en el directorio actual
 # (esto se ejecuta fuera del bucle, asegurando que el nombre esté limpio antes de procesarlo)
 #rename 's/ \[HQ\]//' "$DIRECTORIO"/*.mp3
 #rename -e 's/[0-9]{1,4}\.//' "$DIRECTORIO"/*.mp3
-sleep 20
+#sleep 20
 
 # Crea la carpeta KO_FOLDER si no existe
 if [ ! -d "$KO_FOLDER" ]; then
@@ -44,8 +57,9 @@ for archivo in "$DIRECTORIO"/*.mp3; do
         mv "$archivo" "$KO_FOLDER/"
         echo  "${artista} - ${cancionyRemix} año: ${anyo}, estilo: ${style} - \033[31mKO\033[0m"
     else
-        echo  "${artista} - ${cancionyRemix} año: ${anyo}, estilo: ${style} - \033[32mOK\033[0m"
         id3v2 --artist "$artista" --song "$cancionyRemix" --album "$MUSIC_ALBUM" --year "$anyo" --genre "$style" "$archivo"
+        echo  "${artista} - ${cancionyRemix} año: ${anyo}, estilo: ${style} - \033[32mOK\033[0m"
+
     fi
 
     # Pausa de 1.5 segundos
