@@ -60,6 +60,7 @@ find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
         rm "$IMAGEN_TEMPORAL"
     fi
     sleep 1.5
+    osascript -e 'tell application "Finder" to set label index of alias POSIX file "/Users/pablo/Desktop/21st century records - 1" to 3'
 done
 
 exit 0
