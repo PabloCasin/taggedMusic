@@ -8,12 +8,27 @@ import json
 SAMPLE_RATE = 22050  # Frecuencia de muestreo común en librosa
 N_MFCC = 13  # Número de coeficientes MFCC
 
-def extract_mfcc(file_path, n_mfcc=N_MFCC):
-    """Extrae los MFCCs promedio de un archivo de audio."""
+def extract_features(file_path, n_mfcc=N_MFCC):
+    """Extrae los MFCCs promedio y otras características de un archivo de audio."""
     y, sr = librosa.load(file_path, sr=SAMPLE_RATE)
+    
+    # MFCCs
     mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc)
     mfcc_mean = np.mean(mfcc.T, axis=0)
-    return mfcc_mean
+    
+    # Características adicionales
+    rms = librosa.feature.rms(y=y).mean()
+    spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr).mean()
+    spectral_bandwidth = librosa.feature.spectral_bandwidth(y=y, sr=sr).mean()
+    zcr = librosa.feature.zero_crossing_rate(y=y).mean()
+    
+    return {
+        "mfcc": mfcc_mean.tolist(),
+        "rms": rms,
+        "spectral_centroid": spectral_centroid,
+        "spectral_bandwidth": spectral_bandwidth,
+        "zcr": zcr
+    }
 
 def process_all_files(data_path):
     """Procesa todos los archivos .mp3 en el directorio especificado de forma recursiva."""
@@ -23,16 +38,18 @@ def process_all_files(data_path):
             if filename.endswith(".mp3"):
                 file_path = os.path.join(root, filename)
                 print(f"Procesando archivo {file_path}")
+                
                 # Extrae características
-                mfccs = extract_mfcc(file_path)
+                features = extract_features(file_path)
+                
                 # Guarda las características junto con el nombre del archivo
                 data.append({
                     "filename": os.path.relpath(file_path, data_path),  # Ruta relativa al directorio base
-                    "mfcc": mfccs.tolist()
+                    **features
                 })
     
     # Guardamos las características en un archivo JSON en la misma carpeta de salida
-    output_path = os.path.join(data_path, "mfcc_features.json")
+    output_path = os.path.join(data_path, "audio_features.json")
     with open(output_path, "w") as fp:
         json.dump(data, fp, indent=4)
     print(f"Características guardadas en {output_path}")
