@@ -34,13 +34,14 @@ find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
     album=$(eyeD3 "$archivo_mp3" | grep "album:" | awk -F': ' '{print $2}')
     cancion=$(eyeD3 "$archivo_mp3" | grep "title:" | awk -F': ' '{print $2}')
 
+    cancionsinMix=$(echo "$cancion" | awk -F' (' '{print $1}')
     # Escapar espacios para URL
-    searchSong=$(echo "$album" | sed -e 's/ /%20/g' -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\//%2F/g')  
+    searchSong=$(echo "$cancionsinMix" | sed -e 's/ /%20/g' -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\//%2F/g')  
     searchArtista=$(echo "$artista" | sed -e 's/ /%20/g' -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\//%2F/g')
     searchLabel=$(echo "$2" | sed -e 's/ /%20/g' -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\//%2F/g')
 
 
-    fullURL="${URL}&artist=${searchArtista}&title=${searchSong}&label=${searchLabel}"
+    fullURL="${URL}&artist=${searchArtista}&title=${searchSong}"
     json=$(curl -s "$fullURL")
     index=$(echo "$json" | jq -r '(.results | to_entries | map(select(.value.format | contains(["Vinyl", "12\""]))) | .[0] | .key) // 0
 ')
@@ -57,26 +58,9 @@ find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
             rm "$IMAGEN_TEMPORAL"
         
     else
+            mv "$archivo_mp3" "$DIRECTORIO/$KO_FOLDER/"
+            no_encontrados+=("${artista} - ${album}")
 
-            fullURL="${URL}&title=${searchSong}&label=${searchLabel}"
-            json=$(curl -s "$fullURL")
-            index=$(echo "$json" | jq -r '(.results | to_entries | map(select(.value.format | contains(["Vinyl", "12\""]))) | .[0] | .key) // 0
-        ')
-            results=$(echo "$json" | jq ".pagination.items")
-            anyo=$(echo "$json" | jq -r ".results[${index}].year")
-            style=$(echo "$json" | jq -r ".results[${index}].style[0]")
-            coverImage=$(echo "$json" | jq -r ".results[${index}].cover_image")
-
-            if [ $results -gt 0 ]; then
-                curl -s -o "$IMAGEN_TEMPORAL" "$coverImage"
-                sleep 0.5
-                eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --release-year "$anyo" "$archivo_mp3"
-                rm "$IMAGEN_TEMPORAL"
-            else
-                eyeD3  --genre "$style" --release-year "$anyo" "$archivo_mp3"
-                mv "$archivo_mp3" "$DIRECTORIO/$KO_FOLDER/"
-                no_encontrados+=("${artista} - ${album}")
-            fi
     fi
     sleep 1.5
 done

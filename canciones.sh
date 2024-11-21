@@ -5,13 +5,13 @@
 KO_FOLDER="ko_songs"
 URL="https://api.discogs.com/database/search?key=dxtCgfEqswNhHHOaQzxR&secret=ACMIcQrllDbOVpuRmbVHrZCEzNGINTsm"
 
-if [$1 == ""]; then
+if [ -z "$1" ]; then
     DIRECTORIO="$(pwd)"
 else
     DIRECTORIO=$1
 fi
 
-if [$2 == ""]; then
+if [ -z "$2" ]; then
     MUSIC_ALBUM=""
 else
     MUSIC_ALBUM=$2
@@ -39,7 +39,8 @@ for archivo in "$DIRECTORIO"/*.mp3; do
     artista=$(echo "$nombre_archivo" | awk -F ' - ' '{print $1}')
     cancionyRemix=$(echo "$nombre_archivo" | awk -F ' - ' '{print $2}')
     cancion=$(echo "$cancionyRemix" | awk -F '(' '{print $1}')
-    
+    titlecaseSong=$(echo "$cancion" | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
+
     # Escapar espacios para URL
     searchSong=$(echo "$cancion" | sed 's/ /%20/g')  
     searchArtista=$(echo "$artista" | sed 's/ /%20/g')
@@ -47,8 +48,12 @@ for archivo in "$DIRECTORIO"/*.mp3; do
     # Construir la URL completa
     fullURL="${URL}&artist=${searchArtista}&title=${searchSong}"
     json=$(curl -s "$fullURL")
-    anyo=$(echo "$json" | jq -r ".results[0].year")
-    style=$(echo "$json" | jq -r ".results[0].style[0]")
+    index=$(echo "$json" | jq -r '(.results | to_entries | map(select(.value.format | contains(["Vinyl", "12\""]))) | .[0] | .key) // 0
+')
+    results=$(echo "$json" | jq ".pagination.items")
+    anyo=$(echo "$json" | jq -r ".results[${index}].year")
+    style=$(echo "$json" | jq -r ".results[${index}].style[0]")
+    coverImage=$(echo "$json" | jq -r ".results[${index}].cover_image")
 
     # Establece los tags de artista y título
     if [ "$anyo" == "null" ] || [ "$style" == "null" ]; then
@@ -61,9 +66,24 @@ for archivo in "$DIRECTORIO"/*.mp3; do
         echo  "${artista} - ${cancionyRemix} año: ${anyo}, estilo: ${style} - \033[32mOK\033[0m"
 
     fi
-
-    # Pausa de 1.5 segundos
+    if [ $results -gt 0 ];
+    then
+            curl -s -o "$IMAGEN_TEMPORAL" "$coverImage"
+            sleep 0.5
+            eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --title "$titlecaseSong" --release-year "$anyo" "$archivo"
+            rm "$IMAGEN_TEMPORAL"
+        
+    else
+            eyeD3 --title "$titlecaseSong" --album "$album" --artist "$artista" --publisher "$2" --remove-all "$archivo"
+            mv "$archivo" "$DIRECTORIO/$KO_FOLDER/"
+            no_encontrados+=("${artista} - ${album}")
+    fi
     sleep 1.5
+done
+
+echo "\nArchivos NO encontrados en Discogs:"
+for item in "${no_encontrados[@]}"; do
+    echo "- $item"
 done
 
 exit 0
