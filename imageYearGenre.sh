@@ -29,13 +29,10 @@ fi
 
 find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
     # Extrae el nombre del directorio donde se encuentra el archivo .mp3
-    nombre_directorio=$(dirname "$archivo_mp3")
-    nombre_directorio_base=$(basename "$nombre_directorio")
-    nombre_fichero=$(basename "$archivo_mp3" .mp3)
-    artista=$(echo "$nombre_directorio_base" | awk -F ' - ' '{print $1}')
-    album=$(echo "$nombre_directorio_base" | awk -F ' - ' '{print $2}')
-    cancion=$(echo "$nombre_fichero" | awk -F ' - ' '{print $2}')
-    titlecaseSong=$(echo "$cancion" | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
+
+    artista=$(eyeD3 "$archivo_mp3" | grep "artist:" | awk -F': ' '{print $2}')
+    album=$(eyeD3 "$archivo_mp3" | grep "album:" | awk -F': ' '{print $2}')
+    cancion=$(eyeD3 "$archivo_mp3" | grep "title:" | awk -F': ' '{print $2}')
 
     # Escapar espacios para URL
     searchSong=$(echo "$album" | sed -e 's/ /%20/g' -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\//%2F/g')  
@@ -56,7 +53,7 @@ find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
     then
             curl -s -o "$IMAGEN_TEMPORAL" "$coverImage"
             sleep 0.5
-            eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --title "$titlecaseSong" --album "$album" --artist "$artista" --publisher "$2" --release-year "$anyo" --remove-all "$archivo_mp3"
+            eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --release-year "$anyo" "$archivo_mp3"
             rm "$IMAGEN_TEMPORAL"
         
     else
@@ -73,10 +70,10 @@ find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
             if [ $results -gt 0 ]; then
                 curl -s -o "$IMAGEN_TEMPORAL" "$coverImage"
                 sleep 0.5
-                eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --title "$titlecaseSong" --album "$album" --artist "$artista" --publisher "$2" --release-year "$anyo" --remove-all "$archivo_mp3"
+                eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --release-year "$anyo" "$archivo_mp3"
                 rm "$IMAGEN_TEMPORAL"
             else
-                eyeD3 --title "$titlecaseSong" --album "$album" --artist "$artista" --publisher "$2" --remove-all "$archivo_mp3"
+                eyeD3  --genre "$style" --release-year "$anyo" "$archivo_mp3"
                 mv "$archivo_mp3" "$DIRECTORIO/$KO_FOLDER/"
                 no_encontrados+=("${artista} - ${album}")
             fi
