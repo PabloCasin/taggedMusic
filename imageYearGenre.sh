@@ -39,9 +39,9 @@ get_vinyl_info() {
 }
 
 setData(){
-    local coverImage ="$1"
-    local style = "$2"
-    local anyo = "$3"
+    local coverImage="$1"
+    local style="$2"
+    local anyo="$3"
     curl -s -o "$IMAGEN_TEMPORAL" "$coverImage"
     sleep 0.5
     #eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --release-year "$anyo" "$archivo_mp3"
