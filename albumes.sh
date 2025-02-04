@@ -43,7 +43,8 @@ find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
     searchLabel=$(echo "$2" | sed -e 's/ /%20/g' -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\//%2F/g')
 
 
-    fullURL="${URL}&artist=${searchArtista}&title=${searchSong}&label=${searchLabel}"
+    fullURL="${URL}&artist=${searchArtista}&title=${searchSong}&label=${MUSIC_ALBUM}"
+    echo $fullURL
     json=$(curl -s "$fullURL")
     index=$(echo "$json" | jq -r '(.results | to_entries | map(select(.value.format | contains(["Vinyl", "12\""]))) | .[0] | .key) // 0
 ')
@@ -52,7 +53,7 @@ find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
     style=$(echo "$json" | jq -r ".results[${index}].style[0]")
     coverImage=$(echo "$json" | jq -r ".results[${index}].cover_image")
     
-    if [ $results -gt 0 ];
+    if [ -n "$results" ] && [ "$results" -gt 0 ]; 
     then
             curl -s -o "$IMAGEN_TEMPORAL" "$coverImage"
             sleep 0.5
@@ -61,7 +62,7 @@ find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
         
     else
 
-            fullURL="${URL}&title=${searchSong}&label=${searchLabel}"
+            fullURL="${URL}&title=${searchSong}&label=${MUSIC_ALBUM}"
             json=$(curl -s "$fullURL")
             index=$(echo "$json" | jq -r '(.results | to_entries | map(select(.value.format | contains(["Vinyl", "12\""]))) | .[0] | .key) // 0
         ')
