@@ -22,6 +22,7 @@ fi
 get_vinyl_info() {
     local fullURL="$1"
     local json
+    local results
     local index
     local anyo
     local style
@@ -35,6 +36,17 @@ get_vinyl_info() {
     coverImage=$(echo "$json" | jq -r ".results[${index}].cover_image")
     
     echo "$results|$anyo|$style|$coverImage"
+}
+
+setData(){
+    local coverImage ="$1"
+    local style = "$2"
+    local anyo = "$3"
+    curl -s -o "$IMAGEN_TEMPORAL" "$coverImage"
+    sleep 0.5
+    #eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --release-year "$anyo" "$archivo_mp3"
+    eyeD3 --genre "$style" --release-year "$anyo" "$archivo_mp3"
+    rm "$IMAGEN_TEMPORAL"
 }
 
 # Limpiar los nombres de los archivos MP3 en el directorio actual
@@ -67,30 +79,29 @@ find "$1" -type f -name "*.mp3" | while read -r archivo_mp3; do
     
     if [ $results -gt 0 ];
     then
-            curl -s -o "$IMAGEN_TEMPORAL" "$coverImage"
-            sleep 0.5
-            eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --release-year "$anyo" "$archivo_mp3"
-            #eyeD3  --release-year "$anyo" "$archivo_mp3"
-            rm "$IMAGEN_TEMPORAL"
-        
+            setData "$coverImage" "$style" "$anyo"
     else
 
-            #fullURL="${URL}&artist=${searchArtista}&title=${searchSong}"
-            fullURL="${URL}&q=${searchArtista}%20${searchSong}"
+            fullURL="${URL}&artist=${searchArtista}&title=${searchSong}"
             data=$(get_vinyl_info "$fullURL")
             IFS='|' read -r results anyo style coverImage <<< "$data"
 
             if [ $results -gt 0 ];
             then
-                curl -s -o "$IMAGEN_TEMPORAL" "$coverImage"
-                sleep 0.5
-                eyeD3 --add-image "$IMAGEN_TEMPORAL:FRONT_COVER" --genre "$style" --release-year "$anyo" "$archivo_mp3"
-                #eyeD3  --release-year "$anyo" "$archivo_mp3"
-                rm "$IMAGEN_TEMPORAL"
+                setData "$coverImage" "$style" "$anyo"
             else
-                mv "$archivo_mp3" "$DIRECTORIO/$KO_FOLDER/"
-                echo "\e[1;31m No encontrado - ${artista} - ${cancion} \e[0m"
-                no_encontrados+=("${artista} - ${cancion}")
+                fullURL="${URL}&q=${searchArtista}%20${searchSong}"
+                data=$(get_vinyl_info "$fullURL")
+                IFS='|' read -r results anyo style coverImage <<< "$data"
+
+                if [ $results -gt 0 ];
+                then
+                    setData "$coverImage" "$style" "$anyo"
+                else
+                    mv "$archivo_mp3" "$DIRECTORIO/$KO_FOLDER/"
+                    echo "\e[1;31m No encontrado - ${artista} - ${cancion} \e[0m"
+                    no_encontrados+=("${artista} - ${cancion}")
+                fi
             fi
 
     fi
